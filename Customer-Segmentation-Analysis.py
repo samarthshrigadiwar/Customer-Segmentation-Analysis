@@ -1,0 +1,58 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# In[1]:
+
+
+import os
+os.environ['OMP_NUM_THREADS'] = '1' 
+import pandas as pd
+from sklearn.cluster import KMeans
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+File = pd.read_csv('C:/Users/Asus/Downloads/ifood_df.csv')
+
+def Inspect_and_Refine(File):
+    print("Statistical Summary:")
+    print(File.describe())
+    print("\nMissing Values Count:")
+    print(File.isnull().sum())
+    Refined_Data = File.dropna()
+    return Refined_Data
+
+Refined_Data = Inspect_and_Refine(File)
+
+def Compute_Statistics(Refined_Data):
+    print("\nStatistics:")
+    Average_Value= Refined_Data['MntTotal'].mean()
+    print(f"Average Purchase Value: {Average_Value}")
+    Average_Frequency= Refined_Data[['NumDealsPurchases', 'NumWebPurchases', 'NumCatalogPurchases', 'NumStorePurchases']].sum(axis=1).mean()
+    print(f"Average Purchase Frequency: {Average_Frequency}")
+
+Compute_Statistics(Refined_Data)
+
+def Cluster_Customers(data):
+    Clustering_Features= ['Income', 'MntWines', 'MntFruits', 'MntMeatProducts', 'MntFishProducts', 'MntSweetProducts', 'MntGoldProds']
+    Features_Matrix = data[Clustering_Features]
+    sse_values = []
+    for num_clusters in range(1, 11):
+        kmeans = KMeans(n_clusters=num_clusters, random_state=42, n_init=10)  
+        kmeans.fit(Features_Matrix)
+        sse_values.append(kmeans.inertia_)
+    plt.figure(figsize=(10, 6))
+    plt.plot(range(1, 11), sse_values, marker='o')
+    plt.title('Elbow Method for Determining Optimal Clusters')
+    plt.xlabel('Number of Clusters')
+    plt.ylabel('Sum of Squared Errors (SSE)')
+    plt.show()
+    optimal_cluster_count = 3
+    Final_Kmeans = KMeans(n_clusters=optimal_cluster_count, random_state=42, n_init=10)
+    data['Cluster'] = Final_Kmeans.fit_predict(Features_Matrix)
+    print("\nKMeans Cluster Centers:")
+    print(Final_Kmeans.cluster_centers_)
+    sns.pairplot(data, hue='Cluster', vars=Clustering_Features)
+    plt.show()
+
+Cluster_Customers(Refined_Data)
+
